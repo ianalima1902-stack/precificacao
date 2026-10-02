@@ -507,6 +507,7 @@ hr{border:0;border-top:1px dashed #ddcfbf;margin:18px 0}
             <option value="volume">Volume</option>
             <option value="peso">Peso</option>
             <option value="rolo_dimensao">Rolo por dimensão</option>
+            <option value="folha_dimensao">Folha por dimensão</option>
           </select>
         </div>
         <div><label>VALOR PAGO (R$)</label><input id="iValor" type="number" min="0" step="0.01"></div>
@@ -514,8 +515,8 @@ hr{border:0;border-top:1px dashed #ddcfbf;margin:18px 0}
         <div id="unitWrap"><label>UNIDADE BASE</label>
           <select id="iUnidade"><option value="un">un</option><option value="folhas">folhas</option><option value="m">m</option><option value="cm">cm</option><option value="ml">ml</option><option value="g">g</option></select>
         </div>
-        <div id="rollWidthWrap" style="display:none"><label>LARGURA DO ROLO (cm)</label><input id="iLargura" type="number" step="0.01"></div>
-        <div id="rollLengthWrap" style="display:none"><label>COMPRIMENTO DO ROLO (m)</label><input id="iComprimentoM" type="number" step="0.01"></div>
+        <div id="rollWidthWrap" style="display:none"><label id="dimensionWidthLabel">LARGURA DO MATERIAL (cm)</label><input id="iLargura" type="number" step="0.01"></div>
+        <div id="rollLengthWrap" style="display:none"><label id="dimensionLengthLabel">COMPRIMENTO / ALTURA</label><input id="iComprimentoM" type="number" step="0.01"></div>
       </div>
       <label>OBSERVAÇÃO</label><input id="iObs" placeholder="Ex.: bobina 31 cm × 10 m">
       <div class="actions" style="margin-top:14px"><button class="btn primary" id="saveSupplyBtn">Salvar insumo</button><button class="btn ghost" id="cancelSupplyEditBtn" style="display:none">Cancelar edição</button></div>
@@ -761,8 +762,25 @@ document.getElementById('saveConfigBtn').onclick=async()=>{
 
 // INSUMOS
 function toggleSupplyFields(){
-  const roll=iTipo.value==='rolo_dimensao';rollWidthWrap.style.display=roll?'block':'none';rollLengthWrap.style.display=roll?'block':'none';
-  qtdWrap.style.display=roll?'none':'block';unitWrap.style.display=roll?'none':'block';
+  const roll=iTipo.value==='rolo_dimensao';
+  const sheet=iTipo.value==='folha_dimensao';
+  const dimensional=roll||sheet;
+
+  rollWidthWrap.style.display=dimensional?'block':'none';
+  rollLengthWrap.style.display=dimensional?'block':'none';
+
+  qtdWrap.style.display=sheet?'block':(roll?'none':'block');
+  unitWrap.style.display=dimensional?'none':'block';
+
+  if(roll){
+    dimensionWidthLabel.textContent='LARGURA DO ROLO (cm)';
+    dimensionLengthLabel.textContent='COMPRIMENTO DO ROLO (m)';
+    iComprimentoM.placeholder='Ex.: 10';
+  }else if(sheet){
+    dimensionWidthLabel.textContent='LARGURA DA FOLHA (cm)';
+    dimensionLengthLabel.textContent='ALTURA DA FOLHA (cm)';
+    iComprimentoM.placeholder='Ex.: 29,7';
+  }
 }
 iTipo.onchange=toggleSupplyFields;toggleSupplyFields();
 
@@ -784,21 +802,24 @@ function clearSupplyForm(){
 
 document.getElementById('saveSupplyBtn').onclick=async()=>{
   const tipo=iTipo.value;
+  const isRoll=tipo==='rolo_dimensao';
+  const isSheet=tipo==='folha_dimensao';
   const payload={
     nome:iNome.value.trim(),
     categoria:iCategoria.value.trim(),
     tipo_calculo:tipo,
     valor_compra:num(iValor.value),
-    quantidade_compra:tipo==='rolo_dimensao'?null:num(iQtd.value),
-    unidade_base:tipo==='rolo_dimensao'?null:iUnidade.value,
-    largura_cm:tipo==='rolo_dimensao'?num(iLargura.value):null,
-    comprimento_cm:tipo==='rolo_dimensao'?num(iComprimentoM.value)*100:null,
+    quantidade_compra:isRoll?null:num(iQtd.value),
+    unidade_base:(isRoll||isSheet)?null:iUnidade.value,
+    largura_cm:(isRoll||isSheet)?num(iLargura.value):null,
+    comprimento_cm:isRoll?num(iComprimentoM.value)*100:(isSheet?num(iComprimentoM.value):null),
     observacao:iObs.value.trim(),
     atualizado_em:new Date().toISOString()
   };
   if(!payload.nome||payload.valor_compra<0)return msg('Preencha nome e valor.');
-  if(tipo==='rolo_dimensao'&&(!payload.largura_cm||!payload.comprimento_cm))return msg('Informe largura e comprimento do rolo.');
-  if(tipo!=='rolo_dimensao'&&!payload.quantidade_compra)return msg('Informe a quantidade comprada.');
+  if(isRoll&&(!payload.largura_cm||!payload.comprimento_cm))return msg('Informe largura e comprimento do rolo.');
+  if(isSheet&&(!payload.quantidade_compra||!payload.largura_cm||!payload.comprimento_cm))return msg('Informe quantidade e tamanho das folhas.');
+  if(!isRoll&&!isSheet&&!payload.quantidade_compra)return msg('Informe a quantidade comprada.');
 
   let error;
   if(editingSupplyId){
@@ -817,7 +838,11 @@ document.getElementById('saveSupplyBtn').onclick=async()=>{
 document.getElementById('cancelSupplyEditBtn').onclick=clearSupplyForm;
 
 function supplyBaseCost(s){
-  if(s.tipo_calculo==='rolo_dimensao')return 'Por rendimento';
+  if(s.tipo_calculo==='rolo_dimensao')return 'Por rendimento do rolo';
+  if(s.tipo_calculo==='folha_dimensao'){
+    if(!num(s.quantidade_compra))return '—';
+    return `${money(num(s.valor_compra)/num(s.quantidade_compra))} / folha`;
+  }
   if(!num(s.quantidade_compra))return '—';
   return `${money(num(s.valor_compra)/num(s.quantidade_compra))} / ${s.unidade_base||'un'}`;
 }
@@ -836,7 +861,13 @@ window.editSupply=id=>{
   iQtd.value=s.quantidade_compra??'';
   iUnidade.value=s.unidade_base||'un';
   iLargura.value=s.largura_cm??'';
-  iComprimentoM.value=s.comprimento_cm?num(s.comprimento_cm)/100:'';
+  if(s.tipo_calculo==='rolo_dimensao'){
+    iComprimentoM.value=s.comprimento_cm?num(s.comprimento_cm)/100:'';
+  }else if(s.tipo_calculo==='folha_dimensao'){
+    iComprimentoM.value=s.comprimento_cm??'';
+  }else{
+    iComprimentoM.value='';
+  }
   iObs.value=s.observacao||'';
 
   toggleSupplyFields();
@@ -868,28 +899,70 @@ function renderSupplySelect(){
 }
 function selectedSupply(){return supplies.find(s=>String(s.id)===String(pSupply.value));}
 function updateUsageMode(){
-  const s=selectedSupply();const roll=s?.tipo_calculo==='rolo_dimensao';usageNormal.style.display=roll?'none':'block';usageRoll.style.display=roll?'block':'none';
-  if(s&&!roll)usageLabel.textContent=`QUANTIDADE UTILIZADA (${s.unidade_base||'un'})`;
+  const s=selectedSupply();
+  const dimensional=s?.tipo_calculo==='rolo_dimensao'||s?.tipo_calculo==='folha_dimensao';
+  usageNormal.style.display=dimensional?'none':'block';
+  usageRoll.style.display=dimensional?'block':'none';
+
+  if(s?.tipo_calculo==='folha_dimensao'){
+    document.querySelector('#usageRoll label').textContent='LARGURA DA PEÇA (cm)';
+  }
+
+  if(s&&!dimensional)usageLabel.textContent=`QUANTIDADE UTILIZADA (${s.unidade_base||'un'})`;
 }
 pSupply.onchange=updateUsageMode;
 
 function calcMaterialCost(s,usage,pw,ph,pieces){
   if(!s)return {cost:0,detail:''};
+
   if(s.tipo_calculo==='rolo_dimensao'){
     const W=num(s.largura_cm),L=num(s.comprimento_cm),w=num(pw),h=num(ph),q=Math.max(1,Math.floor(num(pieces)));
     if(!W||!L||!w||!h)return {cost:0,detail:'Dimensões inválidas'};
-    const a=Math.floor(W/w)*Math.floor(L/h),b=Math.floor(W/h)*Math.floor(L/w),yieldCount=Math.max(a,b);
+    const a=Math.floor(W/w)*Math.floor(L/h);
+    const b=Math.floor(W/h)*Math.floor(L/w);
+    const yieldCount=Math.max(a,b);
     if(yieldCount<1)return {cost:0,detail:'A peça não cabe no rolo'};
-    const per=num(s.valor_compra)/yieldCount;return {cost:per*q,detail:`Rendimento estimado: ${yieldCount} peças/rolo • ${money(per)} por peça`};
+    const per=num(s.valor_compra)/yieldCount;
+    return {cost:per*q,detail:`Rendimento estimado: ${yieldCount} peças/rolo • ${money(per)} por peça`};
   }
-  const total=num(s.quantidade_compra);if(!total)return {cost:0,detail:''};
-  const per=num(s.valor_compra)/total;return {cost:per*num(usage),detail:`${money(per)} por ${s.unidade_base||'un'}`};
+
+  if(s.tipo_calculo==='folha_dimensao'){
+    const sheetW=num(s.largura_cm);
+    const sheetH=num(s.comprimento_cm);
+    const totalSheets=Math.max(1,Math.floor(num(s.quantidade_compra)));
+    const pieceW=num(pw),pieceH=num(ph);
+    const q=Math.max(1,Math.floor(num(pieces)));
+
+    if(!sheetW||!sheetH||!pieceW||!pieceH)return {cost:0,detail:'Dimensões inválidas'};
+
+    const fitA=Math.floor(sheetW/pieceW)*Math.floor(sheetH/pieceH);
+    const fitB=Math.floor(sheetW/pieceH)*Math.floor(sheetH/pieceW);
+    const perSheet=Math.max(fitA,fitB);
+
+    if(perSheet<1)return {cost:0,detail:'A peça não cabe na folha'};
+
+    const sheetCost=num(s.valor_compra)/totalSheets;
+    const pieceCost=sheetCost/perSheet;
+    const sheetsNeeded=Math.ceil(q/perSheet);
+    const cost=pieceCost*q;
+
+    return {
+      cost,
+      detail:`${perSheet} peças por folha • ${sheetsNeeded} folha(s) necessária(s) • ${money(pieceCost)} por peça`
+    };
+  }
+
+  const total=num(s.quantidade_compra);
+  if(!total)return {cost:0,detail:''};
+  const per=num(s.valor_compra)/total;
+  return {cost:per*num(usage),detail:`${money(per)} por ${s.unidade_base||'un'}`};
 }
 document.getElementById('addMaterialBtn').onclick=()=>{
   const s=selectedSupply();if(!s)return msg('Cadastre um insumo primeiro.');
-  const roll=s.tipo_calculo==='rolo_dimensao';const usage=roll?num(pPieces.value):num(pUso.value);
+  const dimensional=s.tipo_calculo==='rolo_dimensao'||s.tipo_calculo==='folha_dimensao';
+  const usage=dimensional?num(pPieces.value):num(pUso.value);
   const c=calcMaterialCost(s,usage,pPieceW.value,pPieceH.value,pPieces.value);if(c.cost<=0)return msg(c.detail||'Informe o consumo.');
-  physicalMaterials.push({tempId:crypto.randomUUID(),insumo_id:s.id,nome_snapshot:s.nome,tipo_calculo:s.tipo_calculo,quantidade_uso:usage,largura_peca_cm:roll?num(pPieceW.value):null,altura_peca_cm:roll?num(pPieceH.value):null,custo_calculado:c.cost,detalhes:{detail:c.detail}});
+  physicalMaterials.push({tempId:crypto.randomUUID(),insumo_id:s.id,nome_snapshot:s.nome,tipo_calculo:s.tipo_calculo,quantidade_uso:usage,largura_peca_cm:dimensional?num(pPieceW.value):null,altura_peca_cm:dimensional?num(pPieceH.value):null,custo_calculado:c.cost,detalhes:{detail:c.detail}});
   renderPhysicalMaterials();calcPhysical();
 };
 function renderPhysicalMaterials(){
