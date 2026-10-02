@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Precifica | Um Convite Só</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f6f7f3;--card:#fff;--olive:#7f8c6d;--olive-dark:#5f6b50;--olive-soft:#eef2e9;
+  --gold:#c8ad68;--text:#4d5148;--muted:#8a8f84;--line:#e1e5dc;--danger:#a85f5f;--good:#5f8b58;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:Georgia,"Times New Roman",serif}
+button,input,select{font:inherit}
+.shell{width:min(100%,1180px);margin:auto;padding:22px 14px 60px}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 10px 28px rgba(75,82,66,.08)}
+.login{max-width:520px;margin:8vh auto 0;padding:25px}
+h1,h2,h3{font-weight:400;color:var(--olive-dark)}
+h1{font-size:clamp(30px,6vw,44px);margin:0}
+h2{margin:0 0 8px}
+.sub{color:var(--muted);font-style:italic;line-height:1.45}
+label{display:block;margin:13px 0 6px;font:11px Arial,sans-serif;letter-spacing:1.4px;color:#777c72}
+input,select{
+  width:100%;height:48px;border:1px solid #d4d9cf;border-radius:13px;padding:0 13px;
+  background:#fff;color:var(--text);outline:none;font-size:15px
+}
+input:focus,select:focus{border-color:var(--olive);box-shadow:0 0 0 3px rgba(127,140,109,.12)}
+input[type=color]{padding:5px}
+.btn{border:0;border-radius:999px;min-height:42px;padding:0 16px;cursor:pointer;font-size:14px}
+.btn.primary{background:var(--olive-dark);color:#fff}
+.btn.soft{background:var(--olive-soft);color:var(--olive-dark)}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--olive-dark)}
+.btn.danger{background:#f8eded;color:var(--danger)}
+.btn.good{background:#edf6ea;color:var(--good)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.login .actions{margin-top:18px}
+.app{display:none}
+.app.active{display:block}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.brand small{display:block;font:10px Arial,sans-serif;letter-spacing:2px;color:var(--gold);margin-bottom:5px}
+.nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+.nav button.active{background:var(--olive-dark);color:#fff;border-color:var(--olive-dark)}
+.screen{display:none}
+.screen.active{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{padding:15px;text-align:center}
+.stat strong{display:block;color:var(--olive-dark);font-size:25px;font-weight:400}
+.stat span{font:9px Arial,sans-serif;letter-spacing:1.2px;color:var(--muted)}
+.section{padding:18px;margin-bottom:16px}
+.section h3{margin:0 0 12px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.form-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.inline-note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+.list{overflow:hidden}
+.list-row{display:grid;grid-template-columns:1.4fr .9fr .8fr auto;gap:10px;padding:13px 15px;border-bottom:1px solid var(--line);align-items:center}
+.list-row:last-child{border-bottom:0}
+.list-head{background:#fafbf8;font:10px Arial,sans-serif;letter-spacing:1px;color:var(--muted)}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--olive-soft);color:var(--olive-dark);font:10px Arial,sans-serif;letter-spacing:.8px}
+.result{padding:18px;background:linear-gradient(180deg,#fff,#fafbf8)}
+.result-main{font-size:34px;color:var(--olive-dark);margin:4px 0 2px}
+.money{font-variant-numeric:tabular-nums}
+.breakdown{display:grid;grid-template-columns:1fr auto;gap:8px 15px;margin-top:15px;padding-top:14px;border-top:1px solid var(--line);font-size:14px}
+.breakdown .muted{color:var(--muted)}
+.total-line{font-weight:bold;color:var(--olive-dark)}
+.material-box,.task-box{border:1px solid var(--line);border-radius:17px;padding:13px;margin-top:10px;background:#fff}
+.material-line,.task-line{display:grid;grid-template-columns:1fr auto auto;gap:9px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line)}
+.material-line:last-child,.task-line:last-child{border-bottom:0}
+.small{font-size:12px;color:var(--muted)}
+.sim{margin-top:14px;padding:14px;border-radius:17px;background:#f7f9f4;border:1px solid var(--line)}
+.sim-result{margin-top:8px;font-size:14px;line-height:1.6}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(14px);background:var(--olive-dark);color:#fff;padding:10px 15px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;z-index:100}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal-bg{position:fixed;inset:0;background:rgba(45,50,42,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:80}
+.modal-bg.open{display:flex}
+.modal{width:min(100%,620px);max-height:90vh;overflow:auto;background:#fff;border-radius:22px;padding:20px}
+hr{border:0;border-top:1px solid var(--line);margin:18px 0}
+@media(max-width:820px){
+  .grid2,.grid3,.grid4,.form-grid,.form-grid.three,.form-grid.four{grid-template-columns:1fr}
+  .list-row{grid-template-columns:1fr}
+  .list-head{display:none}
+  .topbar{align-items:flex-start;flex-direction:column}
+}
+</style>
+</head>
+<body>
+<main class="shell">
+
+<section id="login" class="card login">
+  <div class="brand"><small>UM CONVITE SÓ</small><h1>Precifica</h1></div>
+  <p class="sub">Seu sistema interno para calcular custos, margem e preço ideal de produtos físicos e digitais.</p>
+  <label>E-MAIL</label>
+  <input value="ianasousa1902@gmail.com" readonly>
+  <label>SENHA</label>
+  <input id="password" type="password" placeholder="Digite sua senha">
+  <div class="actions">
+    <button class="btn primary" id="loginBtn">Entrar</button>
+    <button class="btn soft" id="signupBtn">Criar meu acesso</button>
+  </div>
+</section>
+
+<section id="app" class="app">
+  <header class="topbar">
+    <div class="brand"><small>UM CONVITE SÓ</small><h1>Precifica</h1><p class="sub" style="margin:5px 0 0">Custos reais. Preço consciente. Margem sob controle.</p></div>
+    <button class="btn ghost" id="logoutBtn">Sair</button>
+  </header>
+
+  <nav class="nav">
+    <button class="btn ghost active" data-screen="dashboard">Visão geral</button>
+    <button class="btn ghost" data-screen="insumos">Insumos</button>
+    <button class="btn ghost" data-screen="digitais">Custos digitais</button>
+    <button class="btn ghost" data-screen="fisico">Novo físico</button>
+    <button class="btn ghost" data-screen="digital">Novo digital</button>
+    <button class="btn ghost" data-screen="projetos">Projetos salvos</button>
+    <button class="btn ghost" data-screen="config">Configurações</button>
+  </nav>
+
+  <section id="dashboard" class="screen active">
+    <div class="grid4">
+      <div class="card stat"><strong id="dashInsumos">0</strong><span>INSUMOS</span></div>
+      <div class="card stat"><strong id="dashCustos">R$ 0</strong><span>PROGRAMAS / MÊS</span></div>
+      <div class="card stat"><strong id="dashProjetos">0</strong><span>PROJETOS SALVOS</span></div>
+      <div class="card stat"><strong id="dashHora">R$ 0</strong><span>VALOR / HORA</span></div>
+    </div>
+    <section class="card section" style="margin-top:16px">
+      <h3>Como usar</h3>
+      <div class="grid2">
+        <div>
+          <b>Produto físico</b>
+          <p class="sub">Cadastre seus insumos uma vez. Depois informe quanto cada projeto consome e o sistema calcula material, perdas, mão de obra, custos indiretos, taxas e preço sugerido.</p>
+        </div>
+        <div>
+          <b>Produto digital</b>
+          <p class="sub">Cadastre os programas que você paga, defina suas horas produtivas e seu valor/hora. O sistema rateia os custos mensais e calcula o custo real de cada convite ou serviço.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="insumos" class="screen">
+    <section class="card section">
+      <h2>Cadastro de insumos</h2>
+      <div class="form-grid three">
+        <div><label>NOME</label><input id="iNome" placeholder="Ex.: BOPP fosco"></div>
+        <div><label>CATEGORIA</label><input id="iCategoria" placeholder="Ex.: Laminação"></div>
+        <div><label>TIPO DE CÁLCULO</label>
+          <select id="iTipo">
+            <option value="unidade">Unidade / folha</option>
+            <option value="comprimento">Comprimento</option>
+            <option value="volume">Volume</option>
+            <option value="peso">Peso</option>
+            <option value="rolo_dimensao">Rolo por dimensão</option>
+          </select>
+        </div>
+        <div><label>VALOR PAGO (R$)</label><input id="iValor" type="number" min="0" step="0.01"></div>
+        <div id="qtdWrap"><label>QUANTIDADE COMPRADA</label><input id="iQtd" type="number" min="0" step="0.001" placeholder="Ex.: 50"></div>
+        <div id="unitWrap"><label>UNIDADE BASE</label>
+          <select id="iUnidade"><option value="un">un</option><option value="folhas">folhas</option><option value="m">m</option><option value="cm">cm</option><option value="ml">ml</option><option value="g">g</option></select>
+        </div>
+        <div id="rollWidthWrap" style="display:none"><label>LARGURA DO ROLO (cm)</label><input id="iLargura" type="number" step="0.01"></div>
+        <div id="rollLengthWrap" style="display:none"><label>COMPRIMENTO DO ROLO (m)</label><input id="iComprimentoM" type="number" step="0.01"></div>
+      </div>
+      <label>OBSERVAÇÃO</label><input id="iObs" placeholder="Ex.: bobina 31 cm × 10 m">
+      <div class="actions" style="margin-top:14px"><button class="btn primary" id="saveSupplyBtn">Salvar insumo</button></div>
+    </section>
+    <section class="card list">
+      <div class="list-row list-head"><div>INSUMO</div><div>TIPO</div><div>CUSTO BASE</div><div>AÇÃO</div></div>
+      <div id="suppliesList"></div>
+    </section>
+  </section>
+
+  <section id="digitais" class="screen">
+    <section class="card section">
+      <h2>Custos mensais digitais</h2>
+      <p class="sub">Canva, Adobe, IA, hospedagem, domínio, ferramentas e outros custos recorrentes.</p>
+      <div class="form-grid three">
+        <div><label>NOME</label><input id="dNome" placeholder="Ex.: Canva Pro"></div>
+        <div><label>VALOR MENSAL (R$)</label><input id="dValor" type="number" min="0" step="0.01"></div>
+        <div style="align-self:end"><button class="btn primary" id="saveDigitalCostBtn">Adicionar custo</button></div>
+      </div>
+    </section>
+    <section class="card list">
+      <div class="list-row list-head"><div>CUSTO</div><div>VALOR MENSAL</div><div>RATEIO / HORA</div><div>AÇÃO</div></div>
+      <div id="digitalCostsList"></div>
+    </section>
+  </section>
+
+  <section id="fisico" class="screen">
+    <div class="grid2">
+      <div>
+        <section class="card section">
+          <h2>Novo produto físico</h2>
+          <div class="form-grid">
+            <div><label>NOME DO PROJETO</label><input id="pNome" placeholder="Ex.: Agenda A5 personalizada"></div>
+            <div><label>QUANTIDADE PRODUZIDA</label><input id="pQtd" type="number" min="1" step="1" value="1"></div>
+            <div><label>HORAS DE TRABALHO</label><input id="pHoras" type="number" min="0" step="0.25" value="0"></div>
+            <div><label>CUSTOS EXTRAS (R$)</label><input id="pExtras" type="number" min="0" step="0.01" value="0"></div>
+            <div><label>PERDAS (%)</label><input id="pPerdas" type="number" min="0" max="100" step="0.1"></div>
+            <div><label>INDIRETOS (%)</label><input id="pIndiretos" type="number" min="0" max="100" step="0.1"></div>
+            <div><label>TAXAS (%)</label><input id="pTaxas" type="number" min="0" max="100" step="0.1"></div>
+            <div><label>MARGEM DESEJADA (%)</label><input id="pMargem" type="number" min="0" max="95" step="0.1"></div>
+          </div>
+        </section>
+
+        <section class="card section">
+          <h3>Adicionar material usado</h3>
+          <label>INSUMO</label><select id="pSupply"></select>
+          <div id="usageNormal">
+            <label id="usageLabel">QUANTIDADE UTILIZADA</label><input id="pUso" type="number" min="0" step="0.001" value="1">
+          </div>
+          <div id="usageRoll" style="display:none">
+            <div class="form-grid three">
+              <div><label>LARGURA DA PEÇA (cm)</label><input id="pPieceW" type="number" min="0" step="0.01"></div>
+              <div><label>ALTURA DA PEÇA (cm)</label><input id="pPieceH" type="number" min="0" step="0.01"></div>
+              <div><label>QUANTAS PEÇAS?</label><input id="pPieces" type="number" min="1" step="1" value="1"></div>
+            </div>
+            <p class="inline-note">O sistema testa as duas orientações da peça no rolo e usa o melhor aproveitamento.</p>
+          </div>
+          <div class="actions" style="margin-top:12px"><button class="btn soft" id="addMaterialBtn">+ Adicionar material</button></div>
+          <div id="physicalMaterials" class="material-box"></div>
+        </section>
+      </div>
+
+      <div>
+        <section class="card result">
+          <div class="small">PREÇO SUGERIDO POR UNIDADE</div>
+          <div id="pSuggestedUnit" class="result-main money">R$ 0,00</div>
+          <div class="small" id="pSuggestedTotal">Total do projeto: R$ 0,00</div>
+          <div id="pBreakdown" class="breakdown"></div>
+          <div class="sim">
+            <b>Simular outro preço</b>
+            <label>PREÇO DE VENDA POR UNIDADE (R$)</label><input id="pSimPrice" type="number" min="0" step="0.01">
+            <div id="pSimResult" class="sim-result"></div>
+          </div>
+          <div class="actions" style="margin-top:15px">
+            <button class="btn primary" id="savePhysicalBtn">Salvar projeto</button>
+            <button class="btn ghost" id="resetPhysicalBtn">Limpar</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="digital" class="screen">
+    <div class="grid2">
+      <div>
+        <section class="card section">
+          <h2>Novo produto digital</h2>
+          <div class="form-grid">
+            <div><label>NOME DO PROJETO</label><input id="gNome" placeholder="Ex.: Convite XV personalizado"></div>
+            <div><label>CUSTOS EXTRAS (R$)</label><input id="gExtras" type="number" min="0" step="0.01" value="0"></div>
+            <div><label>INDIRETOS (%)</label><input id="gIndiretos" type="number" min="0" max="100" step="0.1"></div>
+            <div><label>TAXAS (%)</label><input id="gTaxas" type="number" min="0" max="100" step="0.1"></div>
+            <div><label>MARGEM DESEJADA (%)</label><input id="gMargem" type="number" min="0" max="95" step="0.1"></div>
+          </div>
+        </section>
+
+        <section class="card section">
+          <h3>Etapas e tempo</h3>
+          <div class="form-grid three">
+            <div><label>ETAPA</label><input id="taskName" placeholder="Ex.: Criação do layout"></div>
+            <div><label>HORAS</label><input id="taskHours" type="number" min="0" step="0.25" value="1"></div>
+            <div style="align-self:end"><button class="btn soft" id="addTaskBtn">+ Adicionar etapa</button></div>
+          </div>
+          <div id="digitalTasks" class="task-box"></div>
+        </section>
+      </div>
+
+      <div>
+        <section class="card result">
+          <div class="small">PREÇO SUGERIDO</div>
+          <div id="gSuggested" class="result-main money">R$ 0,00</div>
+          <div class="small" id="gHoursInfo">0 horas de produção</div>
+          <div id="gBreakdown" class="breakdown"></div>
+          <div class="sim">
+            <b>Simular outro preço</b>
+            <label>PREÇO DE VENDA (R$)</label><input id="gSimPrice" type="number" min="0" step="0.01">
+            <div id="gSimResult" class="sim-result"></div>
+          </div>
+          <div class="actions" style="margin-top:15px">
+            <button class="btn primary" id="saveDigitalProjectBtn">Salvar projeto</button>
+            <button class="btn ghost" id="resetDigitalBtn">Limpar</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="projetos" class="screen">
+    <section class="card list">
+      <div class="list-row list-head"><div>PROJETO</div><div>TIPO</div><div>PREÇO SUGERIDO</div><div>AÇÃO</div></div>
+      <div id="projectsList"></div>
+    </section>
+  </section>
+
+  <section id="config" class="screen">
+    <section class="card section">
+      <h2>Configurações de precificação</h2>
+      <div class="form-grid three">
+        <div><label>VALOR DA SUA HORA (R$)</label><input id="cHora" type="number" min="0" step="0.01"></div>
+        <div><label>HORAS PRODUTIVAS / MÊS</label><input id="cHorasMes" type="number" min="1" step="1"></div>
+        <div><label>MARGEM PADRÃO (%)</label><input id="cMargem" type="number" min="0" max="95" step="0.1"></div>
+        <div><label>PERDAS PADRÃO FÍSICO (%)</label><input id="cPerdas" type="number" min="0" max="100" step="0.1"></div>
+        <div><label>INDIRETOS PADRÃO (%)</label><input id="cIndiretos" type="number" min="0" max="100" step="0.1"></div>
+        <div><label>TAXAS PADRÃO (%)</label><input id="cTaxas" type="number" min="0" max="100" step="0.1"></div>
+      </div>
+      <p class="inline-note">Margem é calculada sobre o preço de venda. O sistema também desconta as taxas do faturamento para chegar ao preço sugerido corretamente.</p>
+      <div class="actions" style="margin-top:14px"><button class="btn primary" id="saveConfigBtn">Salvar configurações</button></div>
+    </section>
+  </section>
+</section>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const SUPABASE_URL='https://puevsrsipzzvkapqicex.supabase.co';
+const SUPABASE_KEY='sb_publishable_wu_JCjbkhrtquuNk7KkPfg_Z7ofeQJ_';
+const ADMIN='ianasousa1902@gmail.com';
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let config={valor_hora:0,horas_produtivas_mes:80,margem_padrao:40,perdas_padrao:5,indiretos_padrao:0,taxas_padrao:0};
+let supplies=[],digitalCosts=[],projects=[];
+let physicalMaterials=[],digitalTasks=[];
+
+const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
+const num=v=>Number(v||0);
+const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+const toast=document.getElementById('toast');
+function msg(t){toast.textContent=t;toast.classList.add('show');clearTimeout(window.tt);window.tt=setTimeout(()=>toast.classList.remove('show'),2200)}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));
+  document.getElementById(id).classList.add('active');
+}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>showScreen(b.dataset.screen));
+
+document.getElementById('signupBtn').onclick=async()=>{
+  const p=document.getElementById('password').value;
+  if(p.length<6)return msg('Use uma senha com pelo menos 6 caracteres.');
+  const {error}=await db.auth.signUp({email:ADMIN,password:p});
+  msg(error?error.message:'Acesso criado. Confira seu e-mail se solicitado.');
+};
+document.getElementById('loginBtn').onclick=async()=>{
+  const {data,error}=await db.auth.signInWithPassword({email:ADMIN,password:document.getElementById('password').value});
+  if(error)return msg('E-mail ou senha inválidos.');
+  if(data.user?.email!==ADMIN){await db.auth.signOut();return msg('Acesso não autorizado.');}
+  document.getElementById('login').style.display='none';document.getElementById('app').classList.add('active');await loadAll();
+};
+document.getElementById('logoutBtn').onclick=async()=>{await db.auth.signOut();location.reload()};
+
+async function loadAll(){
+  const [c,s,d,p]=await Promise.all([
+    db.from('precifica_config').select('*').eq('id',1).single(),
+    db.from('precifica_insumos').select('*').eq('ativo',true).order('nome'),
+    db.from('precifica_custos_digitais').select('*').eq('ativo',true).order('nome'),
+    db.from('precifica_projetos').select('*').order('criado_em',{ascending:false})
+  ]);
+  if(c.data)config=c.data;if(s.data)supplies=s.data;if(d.data)digitalCosts=d.data;if(p.data)projects=p.data;
+  populateConfig();applyDefaults();renderSupplies();renderDigitalCosts();renderSupplySelect();renderProjects();renderDashboard();calcPhysical();calcDigital();
+}
+
+function renderDashboard(){
+  document.getElementById('dashInsumos').textContent=supplies.length;
+  document.getElementById('dashCustos').textContent=money(digitalCosts.reduce((a,x)=>a+num(x.valor_mensal),0));
+  document.getElementById('dashProjetos').textContent=projects.length;
+  document.getElementById('dashHora').textContent=money(config.valor_hora);
+}
+
+function populateConfig(){
+  cHora.value=config.valor_hora;cHorasMes.value=config.horas_produtivas_mes;cMargem.value=config.margem_padrao;
+  cPerdas.value=config.perdas_padrao;cIndiretos.value=config.indiretos_padrao;cTaxas.value=config.taxas_padrao;
+}
+function applyDefaults(){
+  pPerdas.value=config.perdas_padrao;pIndiretos.value=config.indiretos_padrao;pTaxas.value=config.taxas_padrao;pMargem.value=config.margem_padrao;
+  gIndiretos.value=config.indiretos_padrao;gTaxas.value=config.taxas_padrao;gMargem.value=config.margem_padrao;
+}
+document.getElementById('saveConfigBtn').onclick=async()=>{
+  const payload={valor_hora:num(cHora.value),horas_produtivas_mes:Math.max(1,num(cHorasMes.value)),margem_padrao:num(cMargem.value),perdas_padrao:num(cPerdas.value),indiretos_padrao:num(cIndiretos.value),taxas_padrao:num(cTaxas.value),atualizado_em:new Date().toISOString()};
+  const {error}=await db.from('precifica_config').update(payload).eq('id',1);if(error)return msg('Não foi possível salvar.');
+  config={...config,...payload};applyDefaults();renderDashboard();renderDigitalCosts();calcPhysical();calcDigital();msg('Configurações salvas.');
+};
+
+// INSUMOS
+function toggleSupplyFields(){
+  const roll=iTipo.value==='rolo_dimensao';rollWidthWrap.style.display=roll?'block':'none';rollLengthWrap.style.display=roll?'block':'none';
+  qtdWrap.style.display=roll?'none':'block';unitWrap.style.display=roll?'none':'block';
+}
+iTipo.onchange=toggleSupplyFields;toggleSupplyFields();
+
+document.getElementById('saveSupplyBtn').onclick=async()=>{
+  const tipo=iTipo.value;
+  const payload={nome:iNome.value.trim(),categoria:iCategoria.value.trim(),tipo_calculo:tipo,valor_compra:num(iValor.value),quantidade_compra:tipo==='rolo_dimensao'?null:num(iQtd.value),unidade_base:tipo==='rolo_dimensao'?null:iUnidade.value,largura_cm:tipo==='rolo_dimensao'?num(iLargura.value):null,comprimento_cm:tipo==='rolo_dimensao'?num(iComprimentoM.value)*100:null,observacao:iObs.value.trim()};
+  if(!payload.nome||payload.valor_compra<0)return msg('Preencha nome e valor.');
+  if(tipo==='rolo_dimensao'&&(!payload.largura_cm||!payload.comprimento_cm))return msg('Informe largura e comprimento do rolo.');
+  if(tipo!=='rolo_dimensao'&&!payload.quantidade_compra)return msg('Informe a quantidade comprada.');
+  const {error}=await db.from('precifica_insumos').insert(payload);if(error)return msg('Não foi possível salvar o insumo.');
+  iNome.value='';iCategoria.value='';iValor.value='';iQtd.value='';iLargura.value='';iComprimentoM.value='';iObs.value='';msg('Insumo salvo.');await loadAll();
+};
+
+function supplyBaseCost(s){
+  if(s.tipo_calculo==='rolo_dimensao')return 'Por rendimento';
+  if(!num(s.quantidade_compra))return '—';
+  return `${money(num(s.valor_compra)/num(s.quantidade_compra))} / ${s.unidade_base||'un'}`;
+}
+function renderSupplies(){
+  suppliesList.innerHTML=supplies.length?supplies.map(s=>`<div class="list-row"><div><b>${esc(s.nome)}</b><div class="small">${esc(s.categoria||'')}</div></div><div><span class="badge">${esc(s.tipo_calculo.replace('_',' '))}</span></div><div>${supplyBaseCost(s)}</div><div class="actions"><button class="btn danger" onclick="deleteSupply(${s.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum insumo cadastrado.</div>';
+}
+window.deleteSupply=async id=>{if(!confirm('Excluir este insumo?'))return;const {error}=await db.from('precifica_insumos').update({ativo:false}).eq('id',id);if(error)return msg('Não foi possível excluir.');msg('Insumo removido.');await loadAll()};
+
+// CUSTOS DIGITAIS
+document.getElementById('saveDigitalCostBtn').onclick=async()=>{
+  const nome=dNome.value.trim(),valor_mensal=num(dValor.value);if(!nome)return msg('Informe o nome do custo.');
+  const {error}=await db.from('precifica_custos_digitais').insert({nome,valor_mensal});if(error)return msg('Não foi possível adicionar.');
+  dNome.value='';dValor.value='';msg('Custo adicionado.');await loadAll();
+};
+function programRate(){return digitalCosts.reduce((a,x)=>a+num(x.valor_mensal),0)/Math.max(1,num(config.horas_produtivas_mes));}
+function renderDigitalCosts(){
+  const rateHours=Math.max(1,num(config.horas_produtivas_mes));
+  digitalCostsList.innerHTML=digitalCosts.length?digitalCosts.map(x=>`<div class="list-row"><div><b>${esc(x.nome)}</b></div><div>${money(x.valor_mensal)}</div><div>${money(num(x.valor_mensal)/rateHours)} / h</div><div><button class="btn danger" onclick="deleteDigitalCost(${x.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum custo digital cadastrado.</div>';
+}
+window.deleteDigitalCost=async id=>{if(!confirm('Excluir este custo?'))return;const {error}=await db.from('precifica_custos_digitais').update({ativo:false}).eq('id',id);if(error)return msg('Não foi possível excluir.');msg('Custo removido.');await loadAll()};
+
+// FÍSICO
+function renderSupplySelect(){
+  pSupply.innerHTML=supplies.length?supplies.map(s=>`<option value="${s.id}">${esc(s.nome)}</option>`).join(''):'<option value="">Cadastre um insumo primeiro</option>';updateUsageMode();
+}
+function selectedSupply(){return supplies.find(s=>String(s.id)===String(pSupply.value));}
+function updateUsageMode(){
+  const s=selectedSupply();const roll=s?.tipo_calculo==='rolo_dimensao';usageNormal.style.display=roll?'none':'block';usageRoll.style.display=roll?'block':'none';
+  if(s&&!roll)usageLabel.textContent=`QUANTIDADE UTILIZADA (${s.unidade_base||'un'})`;
+}
+pSupply.onchange=updateUsageMode;
+
+function calcMaterialCost(s,usage,pw,ph,pieces){
+  if(!s)return {cost:0,detail:''};
+  if(s.tipo_calculo==='rolo_dimensao'){
+    const W=num(s.largura_cm),L=num(s.comprimento_cm),w=num(pw),h=num(ph),q=Math.max(1,Math.floor(num(pieces)));
+    if(!W||!L||!w||!h)return {cost:0,detail:'Dimensões inválidas'};
+    const a=Math.floor(W/w)*Math.floor(L/h),b=Math.floor(W/h)*Math.floor(L/w),yieldCount=Math.max(a,b);
+    if(yieldCount<1)return {cost:0,detail:'A peça não cabe no rolo'};
+    const per=num(s.valor_compra)/yieldCount;return {cost:per*q,detail:`Rendimento estimado: ${yieldCount} peças/rolo • ${money(per)} por peça`};
+  }
+  const total=num(s.quantidade_compra);if(!total)return {cost:0,detail:''};
+  const per=num(s.valor_compra)/total;return {cost:per*num(usage),detail:`${money(per)} por ${s.unidade_base||'un'}`};
+}
+document.getElementById('addMaterialBtn').onclick=()=>{
+  const s=selectedSupply();if(!s)return msg('Cadastre um insumo primeiro.');
+  const roll=s.tipo_calculo==='rolo_dimensao';const usage=roll?num(pPieces.value):num(pUso.value);
+  const c=calcMaterialCost(s,usage,pPieceW.value,pPieceH.value,pPieces.value);if(c.cost<=0)return msg(c.detail||'Informe o consumo.');
+  physicalMaterials.push({tempId:crypto.randomUUID(),insumo_id:s.id,nome_snapshot:s.nome,tipo_calculo:s.tipo_calculo,quantidade_uso:usage,largura_peca_cm:roll?num(pPieceW.value):null,altura_peca_cm:roll?num(pPieceH.value):null,custo_calculado:c.cost,detalhes:{detail:c.detail}});
+  renderPhysicalMaterials();calcPhysical();
+};
+function renderPhysicalMaterials(){
+  physicalMaterialsEl=document.getElementById('physicalMaterials');
+  physicalMaterialsEl.innerHTML=physicalMaterials.length?physicalMaterials.map(m=>`<div class="material-line"><div><b>${esc(m.nome_snapshot)}</b><div class="small">${esc(m.detalhes.detail||'')}</div></div><div>${money(m.custo_calculado)}</div><button class="btn danger" onclick="removeMaterial('${m.tempId}')">×</button></div>`).join(''):'<div class="small">Nenhum material adicionado.</div>';
+}
+window.removeMaterial=id=>{physicalMaterials=physicalMaterials.filter(m=>m.tempId!==id);renderPhysicalMaterials();calcPhysical()};
+
+function pricingFormula(cost,margin,tax){
+  const den=1-(num(margin)/100)-(num(tax)/100);return den>0?cost/den:0;
+}
+function physicalCalcData(){
+  const qty=Math.max(1,Math.floor(num(pQtd.value)||1));
+  const mat=physicalMaterials.reduce((a,x)=>a+num(x.custo_calculado),0);
+  const loss=mat*(num(pPerdas.value)/100);
+  const labor=num(pHoras.value)*num(config.valor_hora);
+  const extras=num(pExtras.value);
+  const base=mat+loss+labor+extras;
+  const indirect=base*(num(pIndiretos.value)/100);
+  const cost=base+indirect;
+  const suggestedTotal=pricingFormula(cost,pMargem.value,pTaxas.value);
+  return {qty,mat,loss,labor,extras,indirect,cost,suggestedTotal,suggestedUnit:suggestedTotal/qty,costUnit:cost/qty};
+}
+function calcPhysical(){
+  const x=physicalCalcData();pSuggestedUnit.textContent=money(x.suggestedUnit);pSuggestedTotal.textContent=`Total do projeto: ${money(x.suggestedTotal)}`;
+  pBreakdown.innerHTML=`<div class="muted">Materiais</div><div>${money(x.mat)}</div><div class="muted">Perdas</div><div>${money(x.loss)}</div><div class="muted">Mão de obra</div><div>${money(x.labor)}</div><div class="muted">Extras</div><div>${money(x.extras)}</div><div class="muted">Indiretos</div><div>${money(x.indirect)}</div><div class="total-line">Custo total</div><div class="total-line">${money(x.cost)}</div><div class="muted">Custo por unidade</div><div>${money(x.costUnit)}</div>`;
+  simulatePhysical();
+}
+function simulatePhysical(){
+  const x=physicalCalcData(),price=num(pSimPrice.value);if(!price){pSimResult.innerHTML='';return}
+  const revenue=price*x.qty,fees=revenue*(num(pTaxas.value)/100),profit=revenue-fees-x.cost,margin=revenue?profit/revenue*100:0;
+  pSimResult.innerHTML=`Faturamento: <b>${money(revenue)}</b><br>Taxas estimadas: ${money(fees)}<br>Lucro: <b>${money(profit)}</b><br>Margem real: <b>${margin.toFixed(1)}%</b>`;
+}
+['pQtd','pHoras','pExtras','pPerdas','pIndiretos','pTaxas','pMargem'].forEach(id=>document.getElementById(id).oninput=calcPhysical);pSimPrice.oninput=simulatePhysical;
+
+document.getElementById('resetPhysicalBtn').onclick=()=>{physicalMaterials=[];pNome.value='';pQtd.value=1;pHoras.value=0;pExtras.value=0;applyDefaults();renderPhysicalMaterials();pSimPrice.value='';calcPhysical()};
+
+document.getElementById('savePhysicalBtn').onclick=async()=>{
+  const nome=pNome.value.trim();if(!nome)return msg('Informe o nome do projeto.');
+  const x=physicalCalcData();
+  const {data,error}=await db.from('precifica_projetos').insert({nome,tipo:'fisico',quantidade:x.qty,margem_pct:num(pMargem.value),perdas_pct:num(pPerdas.value),indiretos_pct:num(pIndiretos.value),taxas_pct:num(pTaxas.value),preco_venda:num(pSimPrice.value)||null,custo_total:x.cost,preco_sugerido:x.suggestedUnit,lucro_estimado:null,dados:{horas_trabalho:num(pHoras.value),extras:num(pExtras.value),custo_unitario:x.costUnit,preco_sugerido_total:x.suggestedTotal}}).select().single();
+  if(error)return msg('Não foi possível salvar.');
+  if(physicalMaterials.length){
+    const rows=physicalMaterials.map(m=>({projeto_id:data.id,insumo_id:m.insumo_id,nome_snapshot:m.nome_snapshot,tipo_calculo:m.tipo_calculo,quantidade_uso:m.quantidade_uso,largura_peca_cm:m.largura_peca_cm,altura_peca_cm:m.altura_peca_cm,custo_calculado:m.custo_calculado,detalhes:m.detalhes}));
+    await db.from('precifica_materiais_projeto').insert(rows);
+  }
+  msg('Projeto físico salvo.');await loadAll();showScreen('projetos');
+};
+
+// DIGITAL
+document.getElementById('addTaskBtn').onclick=()=>{
+  const nome=taskName.value.trim(),horas=num(taskHours.value);if(!nome||horas<=0)return msg('Informe etapa e horas.');
+  digitalTasks.push({tempId:crypto.randomUUID(),nome,horas});taskName.value='';taskHours.value=1;renderDigitalTasks();calcDigital();
+};
+function renderDigitalTasks(){
+  digitalTasksEl=document.getElementById('digitalTasks');
+  digitalTasksEl.innerHTML=digitalTasks.length?digitalTasks.map(t=>`<div class="task-line"><div><b>${esc(t.nome)}</b></div><div>${t.horas} h</div><button class="btn danger" onclick="removeTask('${t.tempId}')">×</button></div>`).join(''):'<div class="small">Nenhuma etapa adicionada.</div>';
+}
+window.removeTask=id=>{digitalTasks=digitalTasks.filter(t=>t.tempId!==id);renderDigitalTasks();calcDigital()};
+
+function digitalCalcData(){
+  const hours=digitalTasks.reduce((a,x)=>a+num(x.horas),0);
+  const labor=hours*num(config.valor_hora),programs=hours*programRate(),extras=num(gExtras.value),base=labor+programs+extras,indirect=base*(num(gIndiretos.value)/100),cost=base+indirect,suggested=pricingFormula(cost,gMargem.value,gTaxas.value);
+  return {hours,labor,programs,extras,indirect,cost,suggested};
+}
+function calcDigital(){
+  const x=digitalCalcData();gSuggested.textContent=money(x.suggested);gHoursInfo.textContent=`${x.hours.toFixed(2)} horas de produção`;
+  gBreakdown.innerHTML=`<div class="muted">Mão de obra</div><div>${money(x.labor)}</div><div class="muted">Rateio de programas</div><div>${money(x.programs)}</div><div class="muted">Extras</div><div>${money(x.extras)}</div><div class="muted">Indiretos</div><div>${money(x.indirect)}</div><div class="total-line">Custo real</div><div class="total-line">${money(x.cost)}</div><div class="muted">Custo dos programas / hora</div><div>${money(programRate())}</div>`;
+  simulateDigital();
+}
+function simulateDigital(){
+  const x=digitalCalcData(),price=num(gSimPrice.value);if(!price){gSimResult.innerHTML='';return}
+  const fees=price*(num(gTaxas.value)/100),profit=price-fees-x.cost,margin=price?profit/price*100:0;
+  gSimResult.innerHTML=`Taxas estimadas: ${money(fees)}<br>Lucro: <b>${money(profit)}</b><br>Margem real: <b>${margin.toFixed(1)}%</b>`;
+}
+['gExtras','gIndiretos','gTaxas','gMargem'].forEach(id=>document.getElementById(id).oninput=calcDigital);gSimPrice.oninput=simulateDigital;
+document.getElementById('resetDigitalBtn').onclick=()=>{digitalTasks=[];gNome.value='';gExtras.value=0;applyDefaults();gSimPrice.value='';renderDigitalTasks();calcDigital()};
+document.getElementById('saveDigitalProjectBtn').onclick=async()=>{
+  const nome=gNome.value.trim();if(!nome)return msg('Informe o nome do projeto.');
+  const x=digitalCalcData();
+  const {data,error}=await db.from('precifica_projetos').insert({nome,tipo:'digital',quantidade:1,margem_pct:num(gMargem.value),perdas_pct:0,indiretos_pct:num(gIndiretos.value),taxas_pct:num(gTaxas.value),preco_venda:num(gSimPrice.value)||null,custo_total:x.cost,preco_sugerido:x.suggested,dados:{horas:x.hours,mao_obra:x.labor,rateio_programas:x.programs,extras:x.extras}}).select().single();
+  if(error)return msg('Não foi possível salvar.');
+  if(digitalTasks.length)await db.from('precifica_tarefas_digitais').insert(digitalTasks.map(t=>({projeto_id:data.id,nome:t.nome,horas:t.horas})));
+  msg('Projeto digital salvo.');await loadAll();showScreen('projetos');
+};
+
+// PROJETOS
+function renderProjects(){
+  projectsList.innerHTML=projects.length?projects.map(p=>`<div class="list-row"><div><b>${esc(p.nome)}</b><div class="small">${new Date(p.criado_em).toLocaleDateString('pt-BR')}</div></div><div><span class="badge">${p.tipo==='fisico'?'Físico':'Digital'}</span></div><div>${money(p.preco_sugerido)}</div><div class="actions"><button class="btn ghost" onclick="viewProject(${p.id})">Ver</button><button class="btn danger" onclick="deleteProject(${p.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum projeto salvo.</div>';
+}
+window.deleteProject=async id=>{if(!confirm('Excluir este projeto salvo?'))return;const {error}=await db.from('precifica_projetos').delete().eq('id',id);if(error)return msg('Não foi possível excluir.');msg('Projeto excluído.');await loadAll()};
+window.viewProject=async id=>{
+  const p=projects.find(x=>x.id===id);if(!p)return;
+  alert(`${p.nome}\n\nTipo: ${p.tipo}\nCusto total: ${money(p.custo_total)}\nPreço sugerido: ${money(p.preco_sugerido)}${p.preco_venda?`\nPreço simulado/salvo: ${money(p.preco_venda)}`:''}`);
+};
+
+renderPhysicalMaterials();renderDigitalTasks();
+
+(async()=>{
+ const {data:{session}}=await db.auth.getSession();
+ if(session?.user?.email===ADMIN){document.getElementById('login').style.display='none';document.getElementById('app').classList.add('active');await loadAll();}
+})();
+</script>
+</body>
+</html>
