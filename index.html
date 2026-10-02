@@ -438,6 +438,28 @@ hr{border:0;border-top:1px dashed #ddcfbf;margin:18px 0}
   .project-summary-grid{grid-template-columns:1fr}
 }
 
+
+.pricing-result{padding:0;overflow:hidden}
+.pricing-section{padding:21px 22px;border-bottom:1px dashed #e4d5c4}
+.pricing-section:last-of-type{border-bottom:0}
+.pricing-eyebrow{font:700 9px "DM Sans","Segoe UI",sans-serif;letter-spacing:1.5px;color:var(--orange);margin-bottom:6px}
+.pricing-title{margin:0 0 15px;font-size:24px}
+.summary-cost-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.summary-cost-card{border:1px solid var(--line);border-radius:17px;padding:14px;background:#fff}
+.summary-cost-card.highlight{background:#fff4df;border-color:#efd9ac}
+.summary-cost-card span,.profit-card span{display:block;font:700 9px "DM Sans","Segoe UI",sans-serif;letter-spacing:1px;color:var(--muted);margin-bottom:5px}
+.summary-cost-card strong{display:block;font-family:"Cormorant Garamond",Georgia,serif;font-size:25px;color:var(--ink);font-weight:600}
+.price-suggested-block{background:linear-gradient(180deg,#fffdf9,#fff7ea)}
+.price-suggested-block .result-main{margin-top:8px}
+.profit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:15px}
+.profit-card{border:1px solid var(--line);border-radius:15px;padding:12px;background:#fff}
+.profit-card strong{display:block;font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;color:var(--brown);font-weight:600}
+.pricing-explain{margin:16px 22px 0;padding:13px 14px;border-radius:15px;background:#f8efe4;color:var(--brown);font-size:13px;line-height:1.5}
+.pricing-explain p{margin:5px 0 0}
+.pricing-result>.sim{margin:18px 22px 0}
+.pricing-result>.actions{padding:0 22px 22px}
+@media(max-width:620px){.summary-cost-grid,.profit-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -580,16 +602,66 @@ hr{border:0;border-top:1px dashed #ddcfbf;margin:18px 0}
       </div>
 
       <div>
-        <section class="card result">
-          <div class="small">PREÇO SUGERIDO POR UNIDADE</div>
-          <div id="pSuggestedUnit" class="result-main money">R$ 0,00</div>
-          <div class="small" id="pSuggestedTotal">Total do projeto: R$ 0,00</div>
-          <div id="pBreakdown" class="breakdown"></div>
+        <section class="card result pricing-result">
+          <div class="pricing-section">
+            <div class="pricing-eyebrow">RESUMO DO CUSTO</div>
+            <h3 class="pricing-title">Quanto esse projeto realmente custa</h3>
+
+            <div class="summary-cost-grid">
+              <div class="summary-cost-card">
+                <span>CUSTO TOTAL DO PROJETO</span>
+                <strong id="pCostTotal">R$ 0,00</strong>
+              </div>
+              <div class="summary-cost-card">
+                <span>QUANTIDADE PRODUZIDA</span>
+                <strong id="pQtySummary">1</strong>
+              </div>
+              <div class="summary-cost-card highlight">
+                <span>CUSTO POR UNIDADE</span>
+                <strong id="pCostUnit">R$ 0,00</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="pricing-section">
+            <div class="pricing-eyebrow">COMPOSIÇÃO DO CUSTO</div>
+            <div id="pBreakdown" class="breakdown"></div>
+          </div>
+
+          <div class="pricing-section price-suggested-block">
+            <div class="pricing-eyebrow">PREÇO SUGERIDO PARA VENDA</div>
+            <div id="pSuggestedUnit" class="result-main money">R$ 0,00</div>
+            <div class="small" id="pSuggestedTotal">Total sugerido do projeto: R$ 0,00</div>
+
+            <div class="profit-grid">
+              <div class="profit-card">
+                <span>LUCRO POR UNIDADE</span>
+                <strong id="pProfitUnit">R$ 0,00</strong>
+              </div>
+              <div class="profit-card">
+                <span>LUCRO TOTAL ESTIMADO</span>
+                <strong id="pProfitTotal">R$ 0,00</strong>
+              </div>
+              <div class="profit-card">
+                <span>MARGEM DESEJADA</span>
+                <strong id="pMarginSummary">0%</strong>
+              </div>
+            </div>
+          </div>
+
           <div class="sim">
-            <b>Simular outro preço</b>
-            <label>PREÇO DE VENDA POR UNIDADE (R$)</label><input id="pSimPrice" type="number" min="0" step="0.01">
+            <b>Testar outro preço de venda</b>
+            <p class="small" style="margin:5px 0 10px">Digite quanto você pretende cobrar por unidade e veja quanto sobra de lucro.</p>
+            <label>PREÇO DE VENDA POR UNIDADE (R$)</label>
+            <input id="pSimPrice" type="number" min="0" step="0.01">
             <div id="pSimResult" class="sim-result"></div>
           </div>
+
+          <div class="pricing-explain">
+            <b>Como esse valor foi calculado?</b>
+            <p>Somamos materiais, perdas, mão de obra, extras e custos indiretos. Depois dividimos pela quantidade produzida e aplicamos taxas e margem para chegar ao preço sugerido.</p>
+          </div>
+
           <div class="actions" style="margin-top:15px">
             <button class="btn primary" id="savePhysicalBtn">Salvar projeto</button>
             <button class="btn ghost" id="resetPhysicalBtn">Limpar</button>
@@ -987,14 +1059,61 @@ function physicalCalcData(){
   return {qty,mat,loss,labor,extras,indirect,cost,suggestedTotal,suggestedUnit:suggestedTotal/qty,costUnit:cost/qty};
 }
 function calcPhysical(){
-  const x=physicalCalcData();pSuggestedUnit.textContent=money(x.suggestedUnit);pSuggestedTotal.textContent=`Total do projeto: ${money(x.suggestedTotal)}`;
-  pBreakdown.innerHTML=`<div class="muted">Materiais</div><div>${money(x.mat)}</div><div class="muted">Perdas</div><div>${money(x.loss)}</div><div class="muted">Mão de obra</div><div>${money(x.labor)}</div><div class="muted">Extras</div><div>${money(x.extras)}</div><div class="muted">Indiretos</div><div>${money(x.indirect)}</div><div class="total-line">Custo total</div><div class="total-line">${money(x.cost)}</div><div class="muted">Custo por unidade</div><div>${money(x.costUnit)}</div>`;
+  const x=physicalCalcData();
+
+  pCostTotal.textContent=money(x.cost);
+  pQtySummary.textContent=x.qty;
+  pCostUnit.textContent=money(x.costUnit);
+
+  pSuggestedUnit.textContent=money(x.suggestedUnit);
+  pSuggestedTotal.textContent=`Total sugerido do projeto: ${money(x.suggestedTotal)}`;
+
+  const feesSuggested=x.suggestedTotal*(num(pTaxas.value)/100);
+  const totalProfit=x.suggestedTotal-feesSuggested-x.cost;
+  const unitProfit=totalProfit/x.qty;
+
+  pProfitUnit.textContent=money(unitProfit);
+  pProfitTotal.textContent=money(totalProfit);
+  pMarginSummary.textContent=`${num(pMargem.value).toFixed(1)}%`;
+
+  pBreakdown.innerHTML=`
+    <div class="muted">Materiais</div><div>${money(x.mat)}</div>
+    <div class="muted">Perdas</div><div>${money(x.loss)}</div>
+    <div class="muted">Mão de obra</div><div>${money(x.labor)}</div>
+    <div class="muted">Extras</div><div>${money(x.extras)}</div>
+    <div class="muted">Indiretos</div><div>${money(x.indirect)}</div>
+    <div class="total-line">Custo total do projeto</div><div class="total-line">${money(x.cost)}</div>
+  `;
+
   simulatePhysical();
 }
 function simulatePhysical(){
-  const x=physicalCalcData(),price=num(pSimPrice.value);if(!price){pSimResult.innerHTML='';return}
-  const revenue=price*x.qty,fees=revenue*(num(pTaxas.value)/100),profit=revenue-fees-x.cost,margin=revenue?profit/revenue*100:0;
-  pSimResult.innerHTML=`Faturamento: <b>${money(revenue)}</b><br>Taxas estimadas: ${money(fees)}<br>Lucro: <b>${money(profit)}</b><br>Margem real: <b>${margin.toFixed(1)}%</b>`;
+  const x=physicalCalcData(),price=num(pSimPrice.value);
+  if(!price){pSimResult.innerHTML='';return}
+
+  const revenue=price*x.qty;
+  const fees=revenue*(num(pTaxas.value)/100);
+  const profit=revenue-fees-x.cost;
+  const profitUnit=profit/x.qty;
+  const margin=revenue?profit/revenue*100:0;
+
+  let status='';
+  if(profit<0){
+    status='Esse preço fica abaixo do seu custo.';
+  }else if(margin<num(pMargem.value)*0.75){
+    status='Esse preço dá lucro, mas fica abaixo da margem desejada.';
+  }else if(margin<num(pMargem.value)){
+    status='Esse preço está próximo da sua margem desejada.';
+  }else{
+    status='Esse preço atende ou supera sua margem desejada.';
+  }
+
+  pSimResult.innerHTML=`
+    <div><span class="small">Lucro por unidade</span><br><b>${money(profitUnit)}</b></div>
+    <div style="margin-top:6px"><span class="small">Lucro total</span><br><b>${money(profit)}</b></div>
+    <div style="margin-top:6px"><span class="small">Margem real</span><br><b>${margin.toFixed(1)}%</b></div>
+    <div style="margin-top:8px;color:var(--brown)">${status}</div>
+  `;
 }
 ['pQtd','pHoras','pExtras','pPerdas','pIndiretos','pTaxas','pMargem'].forEach(id=>document.getElementById(id).oninput=calcPhysical);pSimPrice.oninput=simulatePhysical;
 
