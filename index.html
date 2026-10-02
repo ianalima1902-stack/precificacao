@@ -359,6 +359,85 @@ hr{border:0;border-top:1px dashed #ddcfbf;margin:18px 0}
   .result::before{font-size:14px}
 }
 
+
+.project-modal{width:min(100%,680px)}
+.project-modal-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:16px;
+}
+.project-modal-head h2{margin:2px 0 0}
+.project-modal-kicker{
+  font:700 9px "DM Sans","Segoe UI",sans-serif;
+  letter-spacing:1.8px;
+  color:var(--orange);
+}
+.modal-close-x{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:30px;
+  line-height:1;
+  cursor:pointer;
+  padding:0 2px;
+}
+.project-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-bottom:14px;
+}
+.project-summary-card{
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fffaf3;
+}
+.project-summary-card span{
+  display:block;
+  font:700 9px "DM Sans","Segoe UI",sans-serif;
+  letter-spacing:1px;
+  color:var(--muted);
+  margin-bottom:5px;
+}
+.project-summary-card strong{
+  font-family:"Cormorant Garamond",Georgia,serif;
+  font-size:23px;
+  color:var(--ink);
+  font-weight:600;
+}
+.project-details-card{
+  border:1px solid var(--line);
+  border-radius:17px;
+  overflow:hidden;
+  background:#fff;
+}
+.project-detail-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  padding:11px 13px;
+  border-bottom:1px dashed #eadfd2;
+  align-items:center;
+}
+.project-detail-row:last-child{border-bottom:0}
+.project-detail-row .label{color:var(--muted);font-size:13px}
+.project-detail-row .value{font-weight:700;color:var(--brown);text-align:right}
+.project-note{
+  margin-top:13px;
+  padding:12px 14px;
+  border-radius:15px;
+  background:var(--mustard-soft);
+  color:#6d5428;
+  font-size:13px;
+  line-height:1.5;
+}
+@media(max-width:620px){
+  .project-summary-grid{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
@@ -439,7 +518,7 @@ hr{border:0;border-top:1px dashed #ddcfbf;margin:18px 0}
         <div id="rollLengthWrap" style="display:none"><label>COMPRIMENTO DO ROLO (m)</label><input id="iComprimentoM" type="number" step="0.01"></div>
       </div>
       <label>OBSERVAÇÃO</label><input id="iObs" placeholder="Ex.: bobina 31 cm × 10 m">
-      <div class="actions" style="margin-top:14px"><button class="btn primary" id="saveSupplyBtn">Salvar insumo</button></div>
+      <div class="actions" style="margin-top:14px"><button class="btn primary" id="saveSupplyBtn">Salvar insumo</button><button class="btn ghost" id="cancelSupplyEditBtn" style="display:none">Cancelar edição</button></div>
     </section>
     <section class="card list">
       <div class="list-row list-head"><div>INSUMO</div><div>TIPO</div><div>CUSTO BASE</div><div>AÇÃO</div></div>
@@ -589,6 +668,25 @@ hr{border:0;border-top:1px dashed #ddcfbf;margin:18px 0}
 </section>
 </main>
 
+
+<div class="modal-bg" id="projectModal">
+  <div class="modal project-modal">
+    <div class="project-modal-head">
+      <div>
+        <div class="project-modal-kicker">PROJETO SALVO</div>
+        <h2 id="projectModalTitle">Projeto</h2>
+      </div>
+      <button class="modal-close-x" id="closeProjectModal" aria-label="Fechar">×</button>
+    </div>
+
+    <div id="projectModalContent"></div>
+
+    <div class="actions" style="margin-top:18px">
+      <button class="btn ghost" id="closeProjectModalBtn">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
@@ -600,6 +698,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let config={valor_hora:0,horas_produtivas_mes:80,margem_padrao:40,perdas_padrao:5,indiretos_padrao:0,taxas_padrao:0};
 let supplies=[],digitalCosts=[],projects=[];
 let physicalMaterials=[],digitalTasks=[];
+let editingSupplyId=null;
 
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));
 const num=v=>Number(v||0);
@@ -667,15 +766,55 @@ function toggleSupplyFields(){
 }
 iTipo.onchange=toggleSupplyFields;toggleSupplyFields();
 
+function clearSupplyForm(){
+  editingSupplyId=null;
+  iNome.value='';
+  iCategoria.value='';
+  iTipo.value='unidade';
+  iValor.value='';
+  iQtd.value='';
+  iUnidade.value='un';
+  iLargura.value='';
+  iComprimentoM.value='';
+  iObs.value='';
+  toggleSupplyFields();
+  document.getElementById('saveSupplyBtn').textContent='Salvar insumo';
+  document.getElementById('cancelSupplyEditBtn').style.display='none';
+}
+
 document.getElementById('saveSupplyBtn').onclick=async()=>{
   const tipo=iTipo.value;
-  const payload={nome:iNome.value.trim(),categoria:iCategoria.value.trim(),tipo_calculo:tipo,valor_compra:num(iValor.value),quantidade_compra:tipo==='rolo_dimensao'?null:num(iQtd.value),unidade_base:tipo==='rolo_dimensao'?null:iUnidade.value,largura_cm:tipo==='rolo_dimensao'?num(iLargura.value):null,comprimento_cm:tipo==='rolo_dimensao'?num(iComprimentoM.value)*100:null,observacao:iObs.value.trim()};
+  const payload={
+    nome:iNome.value.trim(),
+    categoria:iCategoria.value.trim(),
+    tipo_calculo:tipo,
+    valor_compra:num(iValor.value),
+    quantidade_compra:tipo==='rolo_dimensao'?null:num(iQtd.value),
+    unidade_base:tipo==='rolo_dimensao'?null:iUnidade.value,
+    largura_cm:tipo==='rolo_dimensao'?num(iLargura.value):null,
+    comprimento_cm:tipo==='rolo_dimensao'?num(iComprimentoM.value)*100:null,
+    observacao:iObs.value.trim(),
+    atualizado_em:new Date().toISOString()
+  };
   if(!payload.nome||payload.valor_compra<0)return msg('Preencha nome e valor.');
   if(tipo==='rolo_dimensao'&&(!payload.largura_cm||!payload.comprimento_cm))return msg('Informe largura e comprimento do rolo.');
   if(tipo!=='rolo_dimensao'&&!payload.quantidade_compra)return msg('Informe a quantidade comprada.');
-  const {error}=await db.from('precifica_insumos').insert(payload);if(error)return msg('Não foi possível salvar o insumo.');
-  iNome.value='';iCategoria.value='';iValor.value='';iQtd.value='';iLargura.value='';iComprimentoM.value='';iObs.value='';msg('Insumo salvo.');await loadAll();
+
+  let error;
+  if(editingSupplyId){
+    ({error}=await db.from('precifica_insumos').update(payload).eq('id',editingSupplyId));
+  }else{
+    ({error}=await db.from('precifica_insumos').insert(payload));
+  }
+
+  if(error)return msg(editingSupplyId?'Não foi possível atualizar o insumo.':'Não foi possível salvar o insumo.');
+
+  msg(editingSupplyId?'Insumo atualizado.':'Insumo salvo.');
+  clearSupplyForm();
+  await loadAll();
 };
+
+document.getElementById('cancelSupplyEditBtn').onclick=clearSupplyForm;
 
 function supplyBaseCost(s){
   if(s.tipo_calculo==='rolo_dimensao')return 'Por rendimento';
@@ -683,8 +822,31 @@ function supplyBaseCost(s){
   return `${money(num(s.valor_compra)/num(s.quantidade_compra))} / ${s.unidade_base||'un'}`;
 }
 function renderSupplies(){
-  suppliesList.innerHTML=supplies.length?supplies.map(s=>`<div class="list-row"><div><b>${esc(s.nome)}</b><div class="small">${esc(s.categoria||'')}</div></div><div><span class="badge">${esc(s.tipo_calculo.replace('_',' '))}</span></div><div>${supplyBaseCost(s)}</div><div class="actions"><button class="btn danger" onclick="deleteSupply(${s.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum insumo cadastrado.</div>';
+  suppliesList.innerHTML=supplies.length?supplies.map(s=>`<div class="list-row"><div><b>${esc(s.nome)}</b><div class="small">${esc(s.categoria||'')}</div></div><div><span class="badge">${esc(s.tipo_calculo.replace('_',' '))}</span></div><div>${supplyBaseCost(s)}</div><div class="actions"><button class="btn ghost" onclick="editSupply(${s.id})">Editar</button><button class="btn danger" onclick="deleteSupply(${s.id})">Excluir</button></div></div>`).join(''):'<div class="empty">Nenhum insumo cadastrado.</div>';
 }
+window.editSupply=id=>{
+  const s=supplies.find(x=>x.id===id);
+  if(!s)return;
+
+  editingSupplyId=id;
+  iNome.value=s.nome||'';
+  iCategoria.value=s.categoria||'';
+  iTipo.value=s.tipo_calculo||'unidade';
+  iValor.value=s.valor_compra??'';
+  iQtd.value=s.quantidade_compra??'';
+  iUnidade.value=s.unidade_base||'un';
+  iLargura.value=s.largura_cm??'';
+  iComprimentoM.value=s.comprimento_cm?num(s.comprimento_cm)/100:'';
+  iObs.value=s.observacao||'';
+
+  toggleSupplyFields();
+  document.getElementById('saveSupplyBtn').textContent='Salvar alterações';
+  document.getElementById('cancelSupplyEditBtn').style.display='inline-flex';
+
+  showScreen('insumos');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
 window.deleteSupply=async id=>{if(!confirm('Excluir este insumo?'))return;const {error}=await db.from('precifica_insumos').update({ativo:false}).eq('id',id);if(error)return msg('Não foi possível excluir.');msg('Insumo removido.');await loadAll()};
 
 // CUSTOS DIGITAIS
@@ -820,9 +982,91 @@ function renderProjects(){
 }
 window.deleteProject=async id=>{if(!confirm('Excluir este projeto salvo?'))return;const {error}=await db.from('precifica_projetos').delete().eq('id',id);if(error)return msg('Não foi possível excluir.');msg('Projeto excluído.');await loadAll()};
 window.viewProject=async id=>{
-  const p=projects.find(x=>x.id===id);if(!p)return;
-  alert(`${p.nome}\n\nTipo: ${p.tipo}\nCusto total: ${money(p.custo_total)}\nPreço sugerido: ${money(p.preco_sugerido)}${p.preco_venda?`\nPreço simulado/salvo: ${money(p.preco_venda)}`:''}`);
+  const p=projects.find(x=>x.id===id);
+  if(!p)return;
+
+  document.getElementById('projectModalTitle').textContent=p.nome;
+
+  const dados=p.dados||{};
+  const rows=[];
+
+  if(p.tipo==='fisico'){
+    rows.push(
+      ['Tipo','Produto físico'],
+      ['Quantidade',p.quantidade||1],
+      ['Custo total',money(p.custo_total)],
+      ['Custo por unidade',money(dados.custo_unitario||((num(p.custo_total))/(Math.max(1,num(p.quantidade)))))],
+      ['Preço sugerido por unidade',money(p.preco_sugerido)],
+      ['Preço sugerido total',money(dados.preco_sugerido_total||num(p.preco_sugerido)*Math.max(1,num(p.quantidade)))],
+      ['Horas de trabalho',`${num(dados.horas_trabalho).toFixed(2)} h`],
+      ['Custos extras',money(dados.extras||0)],
+      ['Margem desejada',`${num(p.margem_pct).toFixed(1)}%`],
+      ['Perdas',`${num(p.perdas_pct).toFixed(1)}%`],
+      ['Indiretos',`${num(p.indiretos_pct).toFixed(1)}%`],
+      ['Taxas',`${num(p.taxas_pct).toFixed(1)}%`]
+    );
+  }else{
+    rows.push(
+      ['Tipo','Produto digital'],
+      ['Custo real',money(p.custo_total)],
+      ['Preço sugerido',money(p.preco_sugerido)],
+      ['Horas de produção',`${num(dados.horas).toFixed(2)} h`],
+      ['Mão de obra',money(dados.mao_obra||0)],
+      ['Rateio de programas',money(dados.rateio_programas||0)],
+      ['Custos extras',money(dados.extras||0)],
+      ['Margem desejada',`${num(p.margem_pct).toFixed(1)}%`],
+      ['Indiretos',`${num(p.indiretos_pct).toFixed(1)}%`],
+      ['Taxas',`${num(p.taxas_pct).toFixed(1)}%`]
+    );
+  }
+
+  if(p.preco_venda){
+    rows.push(['Preço simulado/salvo',money(p.preco_venda)]);
+  }
+
+  document.getElementById('projectModalContent').innerHTML=`
+    <div class="project-summary-grid">
+      <div class="project-summary-card">
+        <span>CUSTO</span>
+        <strong>${money(p.custo_total)}</strong>
+      </div>
+      <div class="project-summary-card">
+        <span>PREÇO SUGERIDO</span>
+        <strong>${money(p.preco_sugerido)}</strong>
+      </div>
+      <div class="project-summary-card">
+        <span>TIPO</span>
+        <strong>${p.tipo==='fisico'?'Físico':'Digital'}</strong>
+      </div>
+    </div>
+
+    <div class="project-details-card">
+      ${rows.map(([label,value])=>`
+        <div class="project-detail-row">
+          <div class="label">${esc(label)}</div>
+          <div class="value">${esc(value)}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="project-note">
+      Salvo em ${new Date(p.criado_em).toLocaleString('pt-BR')}.
+    </div>
+  `;
+
+  document.getElementById('projectModal').classList.add('open');
 };
+
+
+const projectModal=document.getElementById('projectModal');
+function closeProjectModal(){
+  projectModal.classList.remove('open');
+}
+document.getElementById('closeProjectModal').onclick=closeProjectModal;
+document.getElementById('closeProjectModalBtn').onclick=closeProjectModal;
+projectModal.addEventListener('click',e=>{
+  if(e.target===projectModal)closeProjectModal();
+});
 
 renderPhysicalMaterials();renderDigitalTasks();
 
