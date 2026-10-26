@@ -535,11 +535,12 @@ hr{border:0;border-top:1px dashed #ddcfbf;margin:18px 0}
         <div><label>VALOR PAGO (R$)</label><input id="iValor" type="number" min="0" step="0.01"></div>
         <div id="qtdWrap"><label>QUANTIDADE COMPRADA</label><input id="iQtd" type="number" min="0" step="0.001" placeholder="Ex.: 50"></div>
         <div id="unitWrap"><label>UNIDADE BASE</label>
-          <select id="iUnidade"><option value="un">un</option><option value="folhas">folhas</option><option value="m">m</option><option value="cm">cm</option><option value="ml">ml</option><option value="g">g</option></select>
+          <select id="iUnidade"><option value="un">un</option><option value="garrinhas">garrinhas</option><option value="argolas">argolas / elos</option><option value="folhas">folhas</option><option value="m">m</option><option value="cm">cm</option><option value="ml">ml</option><option value="g">g</option></select>
         </div>
         <div id="rollWidthWrap" style="display:none"><label id="dimensionWidthLabel">LARGURA DO MATERIAL (cm)</label><input id="iLargura" type="number" step="0.01"></div>
         <div id="rollLengthWrap" style="display:none"><label id="dimensionLengthLabel">COMPRIMENTO / ALTURA</label><input id="iComprimentoM" type="number" step="0.01"></div>
       </div>
+      <p class="inline-note">Dica para materiais vendidos em tiras ou conjuntos: informe o preço total da embalagem, a quantidade real de peças que ela contém e escolha a unidade correspondente. Ex.: tira de 30 garrinhas = valor pago pela tira, quantidade comprada 30, unidade “garrinhas”. Na precificação, informe quantas garrinhas usou (10, 15, 20 etc.) e o custo será proporcional.</p>
       <label>OBSERVAÇÃO</label><input id="iObs" placeholder="Ex.: bobina 31 cm × 10 m">
       <div class="actions" style="margin-top:14px"><button class="btn primary" id="saveSupplyBtn">Salvar insumo</button><button class="btn ghost" id="cancelSupplyEditBtn" style="display:none">Cancelar edição</button></div>
     </section>
